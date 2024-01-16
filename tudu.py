@@ -12,7 +12,7 @@ def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
+        base_path = sys._MEIPASS2
     except Exception:
         base_path = os.path.abspath(".")
 
@@ -101,7 +101,7 @@ def change_task_state_UI(sender, app_data, user_data):
         create_done_ui(user_data[0])
 
 def change_task_state_XML(sender, app_data, user_data):
-    tree = ET.parse("tudu.xml")
+    tree = ET.parse(resource_path("tudu.xml"))
     tudu = tree.getroot()
     for entry in tudu.findall("entry"):
         object_id = entry.get("object_id")
@@ -113,7 +113,7 @@ def change_task_state_XML(sender, app_data, user_data):
 
                     tudu_xml = ET.ElementTree(tudu)
                     ET.indent(tudu, space = "\t", level = 0)
-                    tudu_xml.write("tudu.xml", encoding = "utf-8")
+                    tudu_xml.write(resource_path("tudu.xml", encoding = "utf-8"))
 
 def str_to_bool(string):
     if string == "True":
@@ -171,7 +171,7 @@ def define_create_tab():
         dpg.add_button(label = "Add TuDu", callback = add_tudu_button, tag = "add_tudu_button")
 
 def load_entries():
-    tree = ET.parse("tudu.xml")
+    tree = ET.parse(resource_path("tudu.xml"))
     tudu = tree.getroot()
     for entry in tudu.findall("entry"):
         task = []
