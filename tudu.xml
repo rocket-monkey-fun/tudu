@@ -1,12 +1,6 @@
 <tudu>
-	<entry object_id="d28f95ae-6929-4c86-aabc-7e53d81668ad">
-		<task type="main" state="True">Feed da cato</task>
-		<task type="sub" state="False">Amelinka</task>
-		<task type="sub" state="False">Leusko</task>
-	</entry>
-	<entry object_id="278cafd0-996a-4169-bb15-f9cf2ddea35c">
-		<task type="main" state="True">Cut da pawse</task>
-		<task type="sub" state="False">Leusko</task>
-		<task type="sub" state="False">Amelinka</task>
+	<entry object_id="cef27de8-9d56-479e-9c3d-be536e9c35ac">
+		<task type="main" state="False">aaa</task>
+		<task type="sub" state="False">bbb</task>
 	</entry>
 </tudu>

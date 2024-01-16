@@ -171,21 +171,24 @@ def define_create_tab():
         dpg.add_button(label = "Add TuDu", callback = add_tudu_button, tag = "add_tudu_button")
 
 def load_entries():
-    tree = ET.parse(resource_path("tudu.xml"))
-    tudu = tree.getroot()
-    for entry in tudu.findall("entry"):
-        task = []
-        task_state = []
-        object_id = entry.get("object_id")
-        for item in entry.findall("task"):
-            task.append(item.text)
-            task_state.append(str_to_bool(item.get("state")))
-        XML_data = [object_id, task, task_state]
-        new_entry_obj = tudu_entry_XML(XML_data)
-        if task_state[0] != True:
-            create_tudu_ui(new_entry_obj)
-        if task_state[0] == True:
-            create_done_ui(new_entry_obj)
+    if os.path.isfile("tudu.xml"):
+        tree = ET.parse(resource_path("tudu.xml"))
+        tudu = tree.getroot()
+        for entry in tudu.findall("entry"):
+            task = []
+            task_state = []
+            object_id = entry.get("object_id")
+            for item in entry.findall("task"):
+                task.append(item.text)
+                task_state.append(str_to_bool(item.get("state")))
+            XML_data = [object_id, task, task_state]
+            new_entry_obj = tudu_entry_XML(XML_data)
+            if task_state[0] != True:
+                create_tudu_ui(new_entry_obj)
+            if task_state[0] == True:
+                create_done_ui(new_entry_obj)
+    else:
+        print("test")
 
 define_GUI()
 
