@@ -7,6 +7,12 @@ import uuid
 import os
 import sys
 
+tab_list = ["TuDu", "Done", "Create"]
+yes_no_list = ["Yes", "No"]
+sub_task_counter = 1
+popup_id_dict = {100: "Text field empty!", 101: "TuDu history not found!"}
+task_done_setting = True
+
 # https://stackoverflow.com/questions/31836104/pyinstaller-and-onefile-how-to-include-an-image-in-the-exe-file
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -17,10 +23,6 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
-
-tab_list = ["TuDu", "Done", "Create"]
-sub_task_counter = 1
-popup_id_dict = {100: "Text field empty!"}
 
 def create_uuid():
     id = str(uuid.uuid4())
@@ -57,12 +59,18 @@ def check_empty_fields():
                 return False
     return True
 
-def show_popup(popup_id = 100):
+def show_popup(popup_id):
     with dpg.window(popup = True, modal = True, no_close = True, no_resize = True, label = "Warning!", pos = (20, 20), tag = "popup_window"):
         string = popup_id_dict.get(popup_id)
         dpg.add_text(string)
         dpg.add_text("")
         dpg.add_button(label = "OK", callback = lambda: dpg.delete_item("popup_window"))
+
+def show_settings_window():
+    with dpg.window(popup = True, modal = True, no_close = True, no_resize = True, label = "Settings!", pos = (20, 20), tag = "settings_window"):
+        dpg.add_text("Task Done if all subtasks are done", bullet = True)
+        dpg.add_radio_button(items = yes_no_list, indent = 10, horizontal = True, default_value = yes_no_list[0], callback = change_task_done_setting)
+        dpg.add_button(label = "OK", callback = lambda: dpg.delete_item("settings_window"))
 
 def clear_create_tab():
     global sub_task_counter
@@ -96,9 +104,24 @@ def change_task_state(sender, app_data, user_data):
     change_task_state_XML(sender, app_data, user_data)
 
 def change_task_state_UI(sender, app_data, user_data):
-    if app_data == True and user_data[1] == "main":
-        dpg.delete_item(user_data[0].object_id)
-        create_done_ui(user_data[0])
+    #if app_data == True and user_data[1] == "main":
+    #    dpg.delete_item(user_data[0].object_id)
+    #    create_done_ui(user_data[0])
+    #if app_data == True and user_data[1] == "sub":
+    if app_data == True:
+        parent_1_up = dpg.get_item_parent(sender)
+        parent_2_up = dpg.get_item_parent(parent_1_up)
+        child_elements = dpg.get_item_children(parent_2_up, 1)
+        for item in child_elements:
+            item_type = dpg.get_item_type(item)
+            if item_type == "mvAppItemType::mvGroup":
+                child_elements.remove(item)
+                for element in child_elements:
+                    if child_elements.index(element) == 1:
+                        print("chb1")
+                    else:
+                        print("chnot1")
+
 
 def change_task_state_XML(sender, app_data, user_data):
     tree = ET.parse(resource_path("tudu.xml"))
@@ -113,7 +136,15 @@ def change_task_state_XML(sender, app_data, user_data):
 
                     tudu_xml = ET.ElementTree(tudu)
                     ET.indent(tudu, space = "\t", level = 0)
-                    tudu_xml.write(resource_path("tudu.xml", encoding = "utf-8"))
+                    tudu_xml.write(resource_path("tudu.xml"), encoding = "utf-8")
+
+def change_task_done_setting(sender, app_data):
+    global task_done_setting
+    if app_data == yes_no_list[0]:
+        task_done_setting = True
+    else:
+        task_done_setting = False
+    print(task_done_setting)
 
 def str_to_bool(string):
     if string == "True":
@@ -147,6 +178,9 @@ def define_GUI():
 
     with dpg.window(tag = "main_window"):
 
+        with dpg.menu_bar():
+            dpg.add_button(label = "Settings", callback = show_settings_window)
+
         with dpg.tab_bar():
             dpg.add_tab(label = tab_list[0], tag = "tudu_tab")
             dpg.add_tab(label = tab_list[1], tag = "done_tab")
@@ -171,7 +205,7 @@ def define_create_tab():
         dpg.add_button(label = "Add TuDu", callback = add_tudu_button, tag = "add_tudu_button")
 
 def load_entries():
-    if os.path.isfile("tudu.xml"):
+    if os.path.isfile(resource_path("tudu.xml")):
         tree = ET.parse(resource_path("tudu.xml"))
         tudu = tree.getroot()
         for entry in tudu.findall("entry"):
@@ -188,7 +222,11 @@ def load_entries():
             if task_state[0] == True:
                 create_done_ui(new_entry_obj)
     else:
-        print("test")
+        show_popup(popup_id = 101)
+        tudu = ET.Element("tudu")
+        tudu_xml = ET.ElementTree(tudu)
+        ET.indent(tudu, space = "\t", level = 0)
+        tudu_xml.write(resource_path("tudu.xml"), encoding = "utf-8")
 
 define_GUI()
 
