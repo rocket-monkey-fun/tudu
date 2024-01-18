@@ -8,10 +8,9 @@ import os
 import sys
 
 tab_list = ["TuDu", "Done", "Create"]
-yes_no_list = ["Yes", "No"]
 sub_task_counter = 1
 popup_id_dict = {100: "Text field empty!", 101: "TuDu history not found!"}
-task_done_setting = True
+task_done_setting = False
 
 # https://stackoverflow.com/questions/31836104/pyinstaller-and-onefile-how-to-include-an-image-in-the-exe-file
 def resource_path(relative_path):
@@ -67,10 +66,10 @@ def show_popup(popup_id):
         dpg.add_button(label = "OK", callback = lambda: dpg.delete_item("popup_window"))
 
 def show_settings_window():
-    with dpg.window(popup = True, modal = True, no_close = True, no_resize = True, label = "Settings!", pos = (20, 20), tag = "settings_window"):
+    with dpg.window(popup = True, modal = True, no_close = True, no_resize = True, label = "Settings!", pos = (20, 20)):
         dpg.add_text("Task Done if all subtasks are done", bullet = True)
-        dpg.add_radio_button(items = yes_no_list, indent = 10, horizontal = True, default_value = yes_no_list[0], callback = change_task_done_setting)
-        dpg.add_button(label = "OK", callback = lambda: dpg.delete_item("settings_window"))
+        dpg.add_radio_button((True, False), indent = 10, horizontal = True, default_value = task_done_setting, callback = change_task_done_setting)
+        dpg.add_button(label = "OK", callback = lambda: dpg.hide_item(dpg.get_item_parent(dpg.last_item())))
 
 def clear_create_tab():
     global sub_task_counter
@@ -104,24 +103,40 @@ def change_task_state(sender, app_data, user_data):
     change_task_state_XML(sender, app_data, user_data)
 
 def change_task_state_UI(sender, app_data, user_data):
-    #if app_data == True and user_data[1] == "main":
-    #    dpg.delete_item(user_data[0].object_id)
-    #    create_done_ui(user_data[0])
-    #if app_data == True and user_data[1] == "sub":
     if app_data == True:
         parent_1_up = dpg.get_item_parent(sender)
         parent_2_up = dpg.get_item_parent(parent_1_up)
-        child_elements = dpg.get_item_children(parent_2_up, 1)
-        for item in child_elements:
-            item_type = dpg.get_item_type(item)
-            if item_type == "mvAppItemType::mvGroup":
-                child_elements.remove(item)
-                for element in child_elements:
-                    if child_elements.index(element) == 1:
-                        print("chb1")
-                    else:
-                        print("chnot1")
+        child_elements_1_down = dpg.get_item_children(parent_2_up, 1)
+        filtered_elements_1_down = []
+        filtered_elements_2_down = []
 
+        for item in child_elements_1_down:
+            if dpg.get_item_type(item) == "mvAppItemType::mvGroup":
+                filtered_elements_1_down.append(item)
+        
+        for item in filtered_elements_1_down:
+            child_elements_2_down = dpg.get_item_children(item, 1)
+            
+            for item in child_elements_2_down:
+                if dpg.get_item_type(item) == "mvAppItemType::mvCheckbox":
+                    filtered_elements_2_down.append(item)
+
+        if sender == filtered_elements_2_down[0]:
+            dpg.delete_item(user_data[0].object_id)
+            create_done_ui(user_data[0])
+        else:
+            if task_done_setting == True:
+                for item in range(1, len(filtered_elements_2_down)):
+                    if dpg.get_value(filtered_elements_2_down[item]) == False:
+                        return
+                    else: 
+                        continue
+                change_task_state_XML(None, True, [user_data[0], "main"])
+                dpg.delete_item(user_data[0].object_id)
+                create_done_ui(user_data[0])
+
+            if task_done_setting == False:
+                return
 
 def change_task_state_XML(sender, app_data, user_data):
     tree = ET.parse(resource_path("tudu.xml"))
@@ -140,7 +155,7 @@ def change_task_state_XML(sender, app_data, user_data):
 
 def change_task_done_setting(sender, app_data):
     global task_done_setting
-    if app_data == yes_no_list[0]:
+    if app_data == "True":
         task_done_setting = True
     else:
         task_done_setting = False
