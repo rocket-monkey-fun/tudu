@@ -12,8 +12,8 @@ sub_task_counter = 1
 popup_id_dict = {100: "Text field empty!", 101: "TuDu history not found!"}
 task_done_setting = False
 
-# https://stackoverflow.com/questions/31836104/pyinstaller-and-onefile-how-to-include-an-image-in-the-exe-file
-def resource_path(relative_path):
+
+def resource_path(relative_path): # https://stackoverflow.com/questions/31836104/pyinstaller-and-onefile-how-to-include-an-image-in-the-exe-file
     """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
@@ -27,27 +27,34 @@ def create_uuid():
     id = str(uuid.uuid4())
     return id
 
-def add_sub_task_button(sender, app_data):
+################################################################################################################################################################
+########## callbacks ##########
+################################################################################################################################################################
+
+def callback_add_sub_task_button(sender, app_data):
     global sub_task_counter
     sub_task_counter += 1
     dpg.add_input_text(parent = "create_tab", before = "add_remove_group", hint = "Sub task", indent = 10, width = 270, tag = f"sub_task_{sub_task_counter}")
 
-def remove_sub_task_button(sender, app_data):
+def callback_remove_sub_task_button(sender, app_data):
     global sub_task_counter
     dpg.delete_item(f"sub_task_{sub_task_counter}")
     sub_task_counter -= 1
 
-def add_tudu_button(sender, app_data):
+def callback_add_tudu_button(sender, app_data):
     if not check_empty_fields():
         show_popup(popup_id = 100)
         return
 
     new_entry_obj = tudu_entry_UI()
-    new_entry_xml = save.save_tudu(new_entry_obj)
-    new_entry_xml.define_xml_structure()
-    new_entry_xml.create_xml()
+    tudu = save.xml_functions.tudu_xml(new_entry_obj)
+    save.xml_functions.save_xml(tudu, "tudu")
     create_tudu_ui(new_entry_obj)
     clear_create_tab()
+
+################################################################################################################################################################
+########## functions ##########
+################################################################################################################################################################
 
 def check_empty_fields():
     child_items = dpg.get_item_children("create_group", 1)
@@ -66,15 +73,15 @@ def show_popup(popup_id):
         dpg.add_button(label = "OK", callback = lambda: dpg.delete_item("popup_window"))
 
 def show_settings_window():
-    with dpg.window(popup = True, modal = True, no_close = True, no_resize = True, label = "Settings!", pos = (20, 20)):
+    with dpg.window(popup = True, modal = True, no_close = True, no_resize = True, label = "Settings", pos = (20, 20)):
         dpg.add_text("Task Done if all subtasks are done", bullet = True)
         dpg.add_radio_button((True, False), indent = 10, horizontal = True, default_value = task_done_setting, callback = change_task_done_setting)
+        dpg.add_separator()
         dpg.add_button(label = "OK", callback = lambda: dpg.hide_item(dpg.get_item_parent(dpg.last_item())))
 
 def clear_create_tab():
     global sub_task_counter
     sub_task_counter = 1
-
     dpg.delete_item("create_group")
     define_create_tab()
 
@@ -87,14 +94,6 @@ def create_tudu_ui(new_entry_obj):
             with dpg.group(horizontal = True):
                 dpg.add_checkbox(indent = 10, default_value = new_entry_obj.task_state[index], user_data = [new_entry_obj, "sub"], callback = change_task_state)
                 dpg.add_text(new_entry_obj.task[index], indent = 40, color = col.retro_orange)
-        dpg.add_separator()
-        dpg.add_separator()
-
-def create_done_ui(new_entry_obj):
-    with dpg.group(parent = "done_tab", tag = new_entry_obj.object_id):
-        dpg.add_text(new_entry_obj.task[0], bullet = True, indent = 0, color = col.retro_turqoise)
-        for index in range(1, len(new_entry_obj.task)):
-            dpg.add_text(new_entry_obj.task[index], bullet = True, indent = 10, color = col.retro_turqoise)
         dpg.add_separator()
         dpg.add_separator()
 
@@ -138,6 +137,14 @@ def change_task_state_UI(sender, app_data, user_data):
             if task_done_setting == False:
                 return
 
+def create_done_ui(new_entry_obj):
+    with dpg.group(parent = "done_tab", tag = new_entry_obj.object_id):
+        dpg.add_text(new_entry_obj.task[0], bullet = True, indent = 0, color = col.retro_turqoise)
+        for index in range(1, len(new_entry_obj.task)):
+            dpg.add_text(new_entry_obj.task[index], bullet = True, indent = 10, color = col.retro_turqoise)
+        dpg.add_separator()
+        dpg.add_separator()
+
 def change_task_state_XML(sender, app_data, user_data):
     tree = ET.parse(resource_path("tudu.xml"))
     tudu = tree.getroot()
@@ -159,6 +166,7 @@ def change_task_done_setting(sender, app_data):
         task_done_setting = True
     else:
         task_done_setting = False
+    save_setting_xml()
     print(task_done_setting)
 
 def str_to_bool(string):
@@ -183,13 +191,26 @@ class tudu_entry_XML():
         self.task = XML_data[1]
         self.task_state = XML_data[2]
 
+def save_setting_xml():
+    tree = ET.parse(resource_path("settings.xml"))
+    settings = tree.getroot()
+    for parameter in settings.findall("parameter"):
+        if parameter.text == "task_done_setting":
+            parameter.set("state", f"{task_done_setting}")
+
+    save.xml_functions.save_xml(settings, "settings")
+
+    #settings_xml = ET.ElementTree(settings)
+    #ET.indent(settings, space = "\t", level = 0)
+    #settings_xml.write(resource_path("settings.xml"), encoding = "utf-8")
+
 ################################################################################################################################################################
 ########## UI ##########
 ################################################################################################################################################################
 
 def define_GUI():
     dpg.create_context()
-    dpg.create_viewport(title = "TuDu", always_on_top = True, width = 300, height = 500)
+    dpg.create_viewport(title = "TuDu", always_on_top = True, width = 300, height = 500, small_icon = resource_path("resources\icon.ico"), large_icon = resource_path("resources\icon.ico"))
 
     with dpg.window(tag = "main_window"):
 
@@ -206,6 +227,7 @@ def define_GUI():
     dpg.setup_dearpygui()
     dpg.show_viewport()
     dpg.set_primary_window("main_window", True)
+    #dpg.set_exit_callback(callback = save_setting_xml)
     dpg.start_dearpygui()
     dpg.destroy_context()
 
@@ -214,10 +236,10 @@ def define_create_tab():
         dpg.add_input_text(hint = "Main task", width = 280, tag = "main_task")
         dpg.add_input_text(hint = "Sub task", indent = 10, width = 270, tag = "sub_task_1")
         with dpg.group(horizontal = True, tag = "add_remove_group"):
-            dpg.add_button(label = "+", indent = 10, callback = add_sub_task_button, tag = "add_sub_task_button")
-            dpg.add_button(label = "-", indent = 30, callback = remove_sub_task_button, tag = "remove_sub_task_button")
+            dpg.add_button(label = "+", indent = 10, callback = callback_add_sub_task_button, tag = "add_sub_task_button")
+            dpg.add_button(label = "-", indent = 30, callback = callback_remove_sub_task_button, tag = "remove_sub_task_button")
         dpg.add_separator()
-        dpg.add_button(label = "Add TuDu", callback = add_tudu_button, tag = "add_tudu_button")
+        dpg.add_button(label = "Add TuDu", callback = callback_add_tudu_button, tag = "add_tudu_button")
 
 def load_entries():
     if os.path.isfile(resource_path("tudu.xml")):

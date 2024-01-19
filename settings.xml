@@ -1,2 +1,3 @@
 <settings>
+	<parameter state="False">task_done_setting</parameter>
 </settings>
